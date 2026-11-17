@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlikTube - Permanent</title>
+<style>
+*{box-sizing:border-box}body{font-family:system-ui;background:#0f0f0f;color:#fff;margin:0;padding:10px}
+.card{background:#1e1e1e;padding:14px;border-radius:12px;margin:10px 0}
+input,button{width:100%;padding:12px;margin:6px 0;border-radius:8px;border:none;font-size:15px}
+input{background:#2a2a2a;color:#fff}
+button{background:#ff0000;color:#fff;font-weight:bold}
+video{width:100%;border-radius:10px;background:#000}
+.thumb{width:100%;border-radius:10px;max-height:220px;object-fit:cover}
+</style>
+</head>
+<body>
+<div class="card">
+<h3>FlikTube - Permanent Save</h3>
+<input type="file" id="vF" accept="video/*">
+<input id="tT" placeholder="Title - Black Clover S2 E1">
+<input id="dD" placeholder="Description">
+<input type="file" id="tF" accept="image/*"><small>Thumbnail</small>
+<button onclick="up()">Upload Permanent</button>
+<p id="st" style="color:#0f0"></p>
+</div>
+<div id="ls"></div>
+<script>
+let db;let req=indexedDB.open('FlikTubeDB',2);
+req.onupgradeneeded=e=>{let d=e.target.result;if(!d.objectStoreNames.contains('videos'))d.createObjectStore('videos',{keyPath:'id',autoIncrement:true});};
+req.onsuccess=e=>{db=e.target.result;show();};
+function up(){
+let vf=document.getElementById('vF').files[0];
+let tf=document.getElementById('tF').files[0];
+let ttl=document.getElementById('tT').value||'Untitled';
+let ds=document.getElementById('dD').value;
+if(!vf){alert('Video select karo');return;}
+document.getElementById('st').innerText='Saving...';
+let td='';let sv=()=>{
+let tx=db.transaction('videos','readwrite');
+tx.objectStore('videos').add({title:ttl,desc:ds,videoBlob:vf,thumbData:td,date:Date.now()});
+tx.oncomplete=()=>{document.getElementById('st').innerText='Saved! Reload pe bhi rahega';show();};
+};
+if(tf){let r=new FileReader();r.onload=e=>{td=e.target.result;sv();};r.readAsDataURL(tf);}else sv();
+}
+function show(){
+if(!db)return;let tx=db.transaction('videos','readonly');let g=tx.objectStore('videos').getAll();
+g.onsuccess=()=>{
+let vs=g.result.reverse();let h='';if(!vs.length)h='<div class=card>No videos yet</div>';
+vs.forEach(v=>{let u=URL.createObjectURL(v.videoBlob);h+=`<div class=card>${v.thumbData?`<img src="${v.thumbData}" class="thumb">`:''}<video controls src="${u}"></video><h3>${v.title}</h3><small>${v.desc||''}</small><br><button onclick="del(${v.id})" style="background:#333;margin-top:8px">Delete</button></div>`;});
+document.getElementById('ls').innerHTML=h;
+};
+}
+function del(id){let tx=db.transaction('videos','readwrite');tx.objectStore('videos').delete(id);tx.oncomplete=show;}
+</script>
+</body>
+</html>
